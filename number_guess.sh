@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Set up the PSQL variable for connecting to the database
+PSQL="psql --username=freecodecamp --dbname=number_guess -t --no-align -c"
+
 # Prompt user for username
 echo "Enter your username:"
 read username
@@ -7,19 +10,17 @@ read username
 # Check if the username exists in the database
 USER_EXISTS=$($PSQL "SELECT username FROM users WHERE username = '$username'")
 
-if [[ -z $USER_EXISTS ]]; 
-then
+if [[ -z $USER_EXISTS ]]; then
   # If the username doesn't exist, welcome them and add them to the database
   echo "Welcome, $username! It looks like this is your first time here."
   # Insert the new user into the database
-  $PSQL "INSERT INTO users (username) VALUES ('$username')"
+  INSERT_USER_RESULT=$($PSQL "INSERT INTO users (username) VALUES ('$username')")
 else
   # If the username exists, fetch their game stats
-  echo "Welcome back, $username!"
   GAME_STATS=$($PSQL "SELECT games_played, best_game FROM users WHERE username = '$username'")
   GAMES_PLAYED=$(echo $GAME_STATS | cut -d'|' -f1)
   BEST_GAME=$(echo $GAME_STATS | cut -d'|' -f2)
-  echo "You have played $GAMES_PLAYED games, and your best game took $BEST_GAME guesses."
+  echo "Welcome back, $username! You have played $GAMES_PLAYED games, and your best game took $BEST_GAME guesses."
 fi
 
 # Generate a random number between 1 and 1000
@@ -42,7 +43,7 @@ while [[ $GUESS -ne $SECRET_NUMBER ]]; do
     continue
   fi
 
-# Compare the guess with the secret number
+  # Compare the guess with the secret number
   if [[ $GUESS -lt $SECRET_NUMBER ]]; then
     echo "It's higher than that, guess again:"
   elif [[ $GUESS -gt $SECRET_NUMBER ]]; then
@@ -54,4 +55,4 @@ done
 echo "You guessed it in $GUESS_COUNT tries. The secret number was $SECRET_NUMBER. Nice job!"
 
 # Update user statistics in the database
-$PSQL "UPDATE users SET games_played = games_played + 1, best_game = LEAST(best_game, $GUESS_COUNT) WHERE username = '$username'"
+UPDATE_RESULT=$($PSQL "UPDATE users SET games_played = games_played + 1, best_game = LEAST(best_game, $GUESS_COUNT) WHERE username = '$username'")
